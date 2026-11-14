@@ -5,7 +5,7 @@
 <title>Wedding Room Manager</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#202b3c;font-family:Arial,sans-serif}header{background:#17365d;color:#fff;padding:22px 18px;text-align:center}h1{font-size:22px;margin:0 0 6px}header p{margin:0;font-size:14px}.wrap{max-width:1050px;margin:22px auto;padding:0 14px}.panel{background:#fff;border:1px solid #e1e6ee;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px #1b355410}.center{text-align:center}.muted{color:#687586;font-size:14px}.error{color:#b3261e}.hidden{display:none!important}#appFrame{width:100%;height:82vh;min-height:650px;border:0;border-radius:12px;background:#fff}button{border:0;border-radius:8px;padding:10px 16px;background:#174ea6;color:#fff;font-weight:600;cursor:pointer}
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#202b3c;font-family:Arial,sans-serif}header{background:#17365d;color:#fff;padding:22px 18px;text-align:center}h1{font-size:22px;margin:0 0 6px}header p{margin:0;font-size:14px}.wrap{max-width:1050px;margin:22px auto;padding:0 14px}.panel{background:#fff;border:1px solid #e1e6ee;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px #1b355410}.center{text-align:center}.muted{color:#687586;font-size:14px}.error{color:#b3261e}.hidden{display:none!important}#appFrame{width:100%;height:84vh;min-height:650px;border:0;border-radius:12px;background:#fff}button{border:0;border-radius:8px;padding:10px 16px;background:#174ea6;color:#fff;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
@@ -15,17 +15,32 @@
 <section id="app" class="hidden"><iframe id="appFrame" title="Wedding Room Manager"></iframe><div class="panel center"><button id="logout" type="button">Sign out</button></div></section>
 </div>
 <script>
-// SET THESE TWO VALUES before publishing GitHub Pages.
-const GOOGLE_CLIENT_ID = '38582337470-d6gr685dkr21urijpdk8s3fd7t6h77a0.apps.googleusercontent.com';
+// This is the existing Web OAuth Client ID and deployed Apps Script URL.
+const GOOGLE_CLIENT_ID = '38582337470-d6gr685dkr21urjipdk8s3fd7t6h77a0.apps.googleusercontent.com';
 const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby_JMPmJbMtY3WE55CGKZf0UvHUApxxNlqTvMRd4ZTv-1MLE0pa7utVMls981lOFOwT/exec';
-const TRUSTED_APP_ORIGIN = 'https://akshaywalavalkar100-pixel.github.io';
-let credential = '', frameReady = false;
 const frame = document.getElementById('appFrame');
-function sendCredential(){if(credential && frameReady) frame.contentWindow.postMessage({type:'WRM_GOOGLE_ID_TOKEN',credential},'*');}
-function onCredential(response){credential=response.credential;document.getElementById('error').textContent='';document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');if(!frame.src)frame.src=APPS_SCRIPT_WEB_APP_URL;sendCredential();}
-function initGoogle(){if(!GOOGLE_CLIENT_ID.includes('.apps.googleusercontent.com')||!APPS_SCRIPT_WEB_APP_URL.includes('/exec')){document.getElementById('error').textContent='Administrator setup required: add the OAuth Client ID and Apps Script /exec URL in index.html.';return;}if(!window.google?.accounts?.id){setTimeout(initGoogle,150);return;}google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:onCredential,auto_select:false});google.accounts.id.renderButton(document.getElementById('googleButton'),{theme:'outline',size:'large',text:'signin_with',shape:'rectangular'});}
-frame.addEventListener('load',()=>{frameReady=true;sendCredential();});
-document.getElementById('logout').addEventListener('click',()=>{credential='';frameReady=false;try{frame.contentWindow.postMessage({type:'WRM_SIGN_OUT'},'*');}catch(e){}document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden');});
+function onCredential(response){
+  if(!response || !response.credential){document.getElementById('error').textContent='Google did not return a sign-in credential. Please try again.';return;}
+  document.getElementById('error').textContent='';
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  // Pass the token as a URL fragment, not postMessage. The fragment is not
+  // included in HTTP requests and is removed immediately by Apps Script UI.
+  const target = new URL(APPS_SCRIPT_WEB_APP_URL);
+  target.hash = 'wrm_token=' + encodeURIComponent(response.credential);
+  frame.src = target.toString();
+}
+function initGoogle(){
+  if(!window.google?.accounts?.id){setTimeout(initGoogle,150);return;}
+  google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:onCredential,auto_select:false});
+  google.accounts.id.renderButton(document.getElementById('googleButton'),{theme:'outline',size:'large',text:'signin_with',shape:'rectangular'});
+}
+document.getElementById('logout').addEventListener('click',()=>{
+  frame.src='about:blank';
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login').classList.remove('hidden');
+  try{google.accounts.id.disableAutoSelect();}catch(e){}
+});
 window.addEventListener('load',initGoogle);
 </script>
 </body></html>
