@@ -27,7 +27,7 @@ function onCredential(response){
   // Pass the token as a URL fragment, not postMessage. The fragment is not
   // included in HTTP requests and is removed immediately by Apps Script UI.
   const target = new URL(APPS_SCRIPT_WEB_APP_URL);
-  target.hash = 'wrm_token=' + encodeURIComponent(response.credential);
+  target.searchParams.set('wrm_token', response.credential);
   frame.src = target.toString();
 }
 function initGoogle(){
